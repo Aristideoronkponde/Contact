@@ -11,7 +11,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ContactUpdatedEvent
+class ContactUpdatedEvent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -20,6 +20,7 @@ class ContactUpdatedEvent
      */
     public function __construct( public Contact $contact)
     {
+        $this->contact = $contact;
         //
     }
 
@@ -31,7 +32,24 @@ class ContactUpdatedEvent
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('channel-name'),
+            new Channel('contacts'),
+        ];
+    }
+    public function broadcastAs(): string
+    {
+        return 'contact.updated';
+    }
+    public function broadcastWith(): array
+    {
+        return [
+            'message' => "Contact  : {$this->contact->name} mis à jour avec succès !",
+            'contact' => [
+                'id' => $this->contact->id,
+                'name' => $this->contact->name,
+                'email' => $this->contact->email,
+                'country' => $this->contact->country,
+                'country_flag' => $this->contact->country_flag,
+            ],
         ];
     }
 }

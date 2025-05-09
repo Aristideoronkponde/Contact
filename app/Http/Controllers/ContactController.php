@@ -59,37 +59,35 @@ class ContactController extends Controller
     // Enregistrer un nouveau contact
 
     public function store(Request $request)
-    {
-        
+{
+    try {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:contacts,email',
+            'phone' => 'nullable|string|max:20',
+            'company' => 'nullable|string|max:255',
+            'country' => 'required|string|max:255',
+        ]);
 
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|unique:contacts,email',
-                'phone' => 'nullable|string|max:20',
-                'company' => 'nullable|string|max:255',
-                'country' => 'required|string|max:255',
-            ]);
+        $country = $request->input('country');
+        $response = Http::get("https://restcountries.com/v3.1/name/{$country}?fullText=true");
 
-            $country = $request->input('country');
-            $response = Http::get("https://restcountries.com/v3.1/name/{$country}?fullText=true");
-
-            if ($response->successful()) {
-                $countryData = $response->json()[0];
-                $validated['country_flag'] = $countryData['flags']['png'];
-            } else {
-                $validated['country_flag'] = null;
-            }
-
-            $contact = Contact::create($validated);
-           
-          event(new ContactEvent( $contact));
-
-            return redirect()->route('dashboard'); 
-        } catch (\Throwable $th) {
-            // dd($th);
+        if ($response->successful()) {
+            $countryData = $response->json()[0];
+            $validated['country_flag'] = $countryData['flags']['png'];
+        } else {
+            $validated['country_flag'] = null;
         }
+
+        $contact = Contact::create($validated);
+
+        event(new ContactEvent($contact));
+
+        return redirect()->route('dashboard')->with('success', 'Contact créé avec succès !');
+    } catch (\Throwable $th) {
+        return redirect()->route('dashboard')->with('error', 'Erreur lors de la création du contact.');
     }
+}
     // Afficher un contact spécifique
     public function show(Contact $contact)
     {
